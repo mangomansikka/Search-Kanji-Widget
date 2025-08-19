@@ -1,0 +1,95 @@
+name: Autograding Tests
+
+on:
+  - push
+  - workflow_dispatch
+  - repository_dispatch
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+env: 
+  CARGO_TERM_COLOR: always
+
+jobs:
+  run-tests:
+    # ubuntu-latest image comes with the latest stable versions of Rust tools
+    # https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md#rust-tools
+    # https://github.com/rust-lang/rustup/tags
+    # https://releases.rs/
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12 # Even the Coopers' running test is faster than this...
+
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    
+    # Checkout the repository, https://github.com/actions/checkout
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      run: rustup default stable
+
+    # Cache Cargo dependencies, https://github.com/actions/cache
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+
+    # https://rustwasm.github.io/docs/wasm-pack/
+    - name: Install wasm-pack
+      run: cargo install wasm-pack
+
+    - name: Check that there are no formatter changes
+      run: |
+        cargo fmt
+        git status --porcelain -uno # https://git-scm.com/docs/git-status
+
+    # https://github.com/classroom-resources/autograding-io-grader
+    - name: wasm-pack build
+      id: wasm-build
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Build release'
+        # Info output goes to stderr so redirect it all to stdout
+        command: 'wasm-pack build --release --target web 2>&1'
+        expected-output: 'Your wasm pkg is ready to publish'
+        comparison-method: 'contains'
+        max-score: 1
+
+    # Use separate Docker instance, https://github.com/addnab/docker-run-action
+    - name: Run Playwright tests in Docker
+      uses: addnab/docker-run-action@v3
+      with:
+        # https://playwright.dev/docs/docker
+        image: mcr.microsoft.com/playwright:v1.50.0-noble
+        # More memory to run browser and volume linking
+        options: --shm-size=1gb -v ${{ github.workspace }}:/work
+        run: |
+          cd work
+          npm install
+          npm test
+  
+    - name: wasm-pack test
+      id: wasm-test
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: 'Testing with Firefox'
+        command: 'wasm-pack test --headless --firefox'
+        expected-output: 'test result: ok.'
+        comparison-method: 'contains'
+        max-score: 1
+
+    # https://github.com/classroom-resources/autograding-grading-reporter
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        WASM-BUILD_RESULTS: "${{steps.wasm-build.outputs.result}}"
+        WASM-TEST_RESULTS: "${{steps.wasm-test.outputs.result}}"
+      with:
+        runners: wasm-build,wasm-test
