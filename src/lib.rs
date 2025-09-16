@@ -3,9 +3,18 @@ use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
 use serde_wasm_bindgen::to_value;
 
+// Enable wasm-bindgen test support when testing
+#[cfg(test)]
+use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+// Configure it to run in a browser
+#[cfg(test)]
+wasm_bindgen_test_configure!(run_in_browser);
+
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Kanji {
-    pub character: String,
+    pub kanji: String,
     pub strokes: u8,
     pub on_readings: Vec<String>,
     pub kun_readings: Vec<String>,
@@ -28,11 +37,13 @@ pub fn search_by_strokes(strokes: u8) -> JsValue {
 mod tests {
     use super::*;
     use serde_wasm_bindgen::from_value;
+    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_search() {
         let val = search_by_strokes(1);
         let vec: Vec<Kanji> = from_value(val).unwrap();
         assert!(vec.iter().all(|k| k.strokes == 1));
     }
 }
+
