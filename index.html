@@ -1,36 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Kanji Search</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    input {
+      font-size: 1rem;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #888;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+  </style>
 </head>
 <body>
   <h1>Kanji Search</h1>
   <input id="filter" type="number" placeholder="Enter stroke count" />
-  <table id="results" border="1"></table>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Kanji</th>
+        <th>Onyomi</th>
+        <th>Kunyomi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- JS will populate rows here -->
+    </tbody>
+  </table>
 
   <script type="module">
     import init, { search_by_strokes } from "./pkg/wasm_kanji_search.js";
 
     async function run() {
       await init();
-      const input = document.getElementById("strokes");
-      const table = document.getElementById("results");
+
+      const input = document.getElementById("filter");
+      const tbody = document.querySelector('table tbody');
 
       input.addEventListener("input", () => {
-        table.innerHTML = "";
+        tbody.innerHTML = ""; // Clear previous results
+
         const value = parseInt(input.value);
         if (!isNaN(value)) {
           const results = search_by_strokes(value);
-          console.log("Stroke count:", value, "Results:", results);
+          console.log(results);
+
           results.forEach(k => {
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${k.character}</td>
+              <td>${k.kanji}</td>
               <td>${k.on_readings.join(", ")}</td>
               <td>${k.kun_readings.join(", ")}</td>
             `;
-            table.appendChild(row);
+            tbody.appendChild(row);
           });
         }
       });
