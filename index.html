@@ -64,10 +64,11 @@
           results.forEach(k => {
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${k.kanji}</td>
-              <td>${k.on_readings.join(", ")}</td>
-              <td>${k.kun_readings.join(", ")}</td>
-            `;
+  <td>${k.kanji}</td>
+  <td>${(k.on_readings_romaji || []).join(", ")}</td>
+  <td>${(k.kun_readings_romaji || []).join(", ")}</td>
+`;
+
             tbody.appendChild(row);
           });
         }

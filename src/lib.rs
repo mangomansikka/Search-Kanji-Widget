@@ -18,6 +18,8 @@ pub struct Kanji {
     pub strokes: u8,
     pub on_readings: Vec<String>,
     pub kun_readings: Vec<String>,
+    pub on_readings_romaji: Vec<String>,
+    pub kun_readings_romaji: Vec<String>,
 }
 
 #[wasm_bindgen]
